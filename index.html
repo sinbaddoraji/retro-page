@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Arcade Zone</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
+    <style>
+        /* Custom CSS for advanced animations and styling */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #0a0a1f; /* Deep space blue/purple */
+            color: #fff;
+            overflow: hidden; /* Prevent scrollbars from background elements */
+            min-height: 100vh;
+            position: relative; /* Needed for absolute positioning of effects */
+        }
+
+        /* --- Background Effects --- */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            animation: scanlines 0.1s linear infinite;
+            z-index: 1;
+        }
+
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
+        }
+
+        .particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none; /* Allows interaction with elements below */
+        }
+
+        .neon-light {
+            position: absolute;
+            border-radius: 50%;
+            box-shadow: 0 0 10px, 0 0 20px, 0 0 30px;
+            animation: blink 1.5s infinite alternate;
+        }
+
+        @keyframes blink {
+            0%, 18%, 22%, 25%, 53%, 57%, 100% {
+                opacity: 1;
+                filter: brightness(1.2);
+            }
+            20%, 24%, 55% {
+                opacity: 0.4;
+                filter: brightness(0.8);
+            }
+        }
+
+        /* --- Game Thumbnails --- */
+        .game-thumbnail {
+            background-color: rgba(30, 30, 50, 0.8);
+            border: 3px solid #ff00ff; /* Neon pink */
+            box-shadow: 0 0 10px #ff00ff, 0 0 5px #ff00ff inset;
+            transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+            cursor: pointer;
+            overflow: hidden; /* Clip potential internal animations */
+            position: relative; /* For potential pseudo-elements */
+        }
+
+        .game-thumbnail:hover {
+            transform: scale(1.05) rotate(1deg);
+            box-shadow: 0 0 20px #00ffff, 0 0 10px #00ffff inset; /* Neon cyan on hover */
+            border-color: #00ffff;
+            animation: pulse 0.8s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1.05) rotate(1deg); }
+            100% { transform: scale(1.08) rotate(-1deg); }
+        }
+
+        .game-thumbnail img, .game-thumbnail .icon-placeholder {
+            width: 60%;
+            height: auto;
+            margin: 10px auto;
+            display: block;
+            image-rendering: pixelated; /* Keep pixel art sharp */
+        }
+        .icon-placeholder { /* Style for text/emoji placeholders */
+            font-size: 3rem; /* Adjust size as needed */
+            text-align: center;
+            line-height: 1;
+            padding: 20px 0;
+        }
+
+        /* --- Other Animated Elements --- */
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #ffd700; /* Gold */
+            border-radius: 50%;
+            border: 2px solid #f0a500;
+            box-shadow: 0 0 5px #ffd700;
+            animation: spin-fall 3s linear infinite, sideways 5s ease-in-out infinite alternate;
+            z-index: 5;
+            opacity: 0.8;
+        }
+
+        @keyframes spin-fall {
+            0% { transform: translateY(-50px) rotateY(0deg); }
+            100% { transform: translateY(110vh) rotateY(360deg); }
+        }
+        @keyframes sideways {
+             0% { left: 10%; }
+             100% { left: 90%; }
+        }
+
+        .joystick {
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(to bottom, #333, #111);
+            border-radius: 5px 5px 25px 25px;
+            position: relative;
+            margin: 10px;
+            display: inline-block; /* Or place with absolute positioning */
+            border: 2px solid #555;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+        }
+        .joystick::before { /* Stick */
+            content: '';
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 40px;
+            background: linear-gradient(to right, #aaa, #666);
+            border-radius: 4px;
+            animation: wiggle 0.5s ease-in-out infinite alternate;
+        }
+        .joystick::after { /* Ball */
+            content: '';
+            position: absolute;
+            bottom: 55px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 5px 5px, #ff4444, #cc0000);
+            border-radius: 50%;
+            animation: wiggle 0.5s ease-in-out infinite alternate; /* Sync with stick */
+        }
+
+        @keyframes wiggle {
+            0% { transform: translateX(-50%) rotate(-5deg); }
+            100% { transform: translateX(-50%) rotate(5deg); }
+        }
+
+        .arcade-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #222;
+            margin: 10px;
+            cursor: pointer;
+            display: inline-block;
+            position: relative;
+            transition: transform 0.1s ease-out;
+            box-shadow: 0 4px 0 #333; /* 3D effect */
+        }
+        .arcade-button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #333;
+        }
+        .arcade-button.red { background: radial-gradient(circle at 10px 10px, #ff8888, #dd0000); }
+        .arcade-button.blue { background: radial-gradient(circle at 10px 10px, #8888ff, #0000dd); }
+        .arcade-button.green { background: radial-gradient(circle at 10px 10px, #88ff88, #00dd00); }
+
+        .arcade-button::after { /* Inner glow/light effect */
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .arcade-button:hover::after {
+            opacity: 1;
+            animation: button-glow 1s infinite alternate;
+        }
+        @keyframes button-glow {
+             0% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+             100% { box-shadow: 0 0 15px rgba(255, 255, 255, 0.8); }
+        }
+
+        /* --- Header/Footer Styling --- */
+        header, footer {
+            background-color: rgba(10, 10, 31, 0.8); /* Match body but slightly different */
+            padding: 15px 0;
+            text-align: center;
+            border-bottom: 3px solid #ff00ff; /* Neon pink */
+            box-shadow: 0 4px 15px rgba(255, 0, 255, 0.5);
+            z-index: 10; /* Keep above background effects */
+            position: relative;
+        }
+        footer {
+            border-bottom: none;
+            border-top: 3px solid #00ffff; /* Neon cyan */
+            box-shadow: 0 -4px 15px rgba(0, 255, 255, 0.5);
+            margin-top: 40px; /* Space above footer */
+        }
+        h1 {
+            font-size: 2.5rem;
+            text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #ff00ff, 0 0 20px #ff00ff;
+            animation: title-flicker 2s infinite alternate;
+        }
+
+        @keyframes title-flicker {
+             0%, 18%, 22%, 25%, 53%, 57%, 100% {
+                text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 15px #ff00ff, 0 0 20px #ff00ff, 0 0 25px #ff00ff;
+                opacity: 1;
+             }
+             20%, 24%, 55% {
+                text-shadow: none;
+                opacity: 0.8;
+             }
+        }
+
+        /* --- Click Explosion Effect --- */
+        .pixel-explosion {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            background-color: white; /* Start color */
+            border-radius: 0; /* Square pixels */
+            pointer-events: none;
+            z-index: 100;
+            opacity: 1;
+            transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+        }
+
+        /* --- Attract Mode Overlay --- */
+        #attract-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 999;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 3rem;
+            animation: attract-fade-in 1s ease-out forwards;
+        }
+        #attract-overlay.active {
+            display: flex;
+        }
+        #attract-text {
+             text-shadow: 0 0 10px #fff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+             animation: attract-pulse 1.5s infinite alternate;
+        }
+        @keyframes attract-fade-in {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+         @keyframes attract-pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+
+    </style>
+</head>
+<body class="relative">
+
+    <div class="scanlines"></div>
+    <canvas id="particleCanvas" class="particle-canvas"></canvas>
+    <div id="neon-lights-container"></div> <header class="relative z-10">
+        <h1>Retro Arcade Zone</h1>
+        <div class="mt-2">
+            <div class="joystick"></div>
+            <button class="arcade-button red" data-sound="button1" aria-label="Red Button"></button>
+            <button class="arcade-button blue" data-sound="button2" aria-label="Blue Button"></button>
+            <button class="arcade-button green" data-sound="button3" aria-label="Green Button"></button>
+            <div class="joystick" style="transform: scaleX(-1);"></div> </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8 relative z-10">
+        <h2 class="text-2xl text-center mb-8 text-yellow-300" style="text-shadow: 0 0 5px #ffdd00;">Select Your Game!</h2>
+
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            <div class="game-thumbnail" data-sound="select" data-game="Pac-Man">
+                <div class="icon-placeholder">🟡</div> <p class="text-center p-2 text-sm">Pac-Man</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Space Invaders">
+                 <div class="icon-placeholder">👾</div> <p class="text-center p-2 text-sm">Space Invaders</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Tetris">
+                 <div class="icon-placeholder">🧱</div> <p class="text-center p-2 text-sm">Tetris</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Snake">
+                 <div class="icon-placeholder">🐍</div> <p class="text-center p-2 text-sm">Snake</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Pong">
+                 <div class="icon-placeholder">🏓</div> <p class="text-center p-2 text-sm">Pong</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Breakout">
+                 <div class="icon-placeholder">💥</div> <p class="text-center p-2 text-sm">Breakout</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Asteroids">
+                 <div class="icon-placeholder">☄️</div> <p class="text-center p-2 text-sm">Asteroids</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Frogger">
+                 <div class="icon-placeholder">🐸</div> <p class="text-center p-2 text-sm">Frogger</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Galaga">
+                 <div class="icon-placeholder">🚀</div> <p class="text-center p-2 text-sm">Galaga</p>
+            </div>
+            <div class="game-thumbnail" data-sound="select" data-game="Donkey Kong">
+                 <div class="icon-placeholder">🦍</div> <p class="text-center p-2 text-sm">Donkey Kong</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="relative z-10">
+        <p>&copy; 2025 Retro Arcade Zone. Insert Coin to Play!</p>
+        <div id="coin-container"></div> </footer>
+
+    <div id="attract-overlay">
+        <div id="attract-text">INSERT COIN!</div>
+    </div>
+
+    <div id="easter-egg" style="position: absolute; bottom: 5px; right: 5px; font-size: 10px; cursor: pointer; opacity: 0.2; z-index: 20;">👾</div>
+
+    <script>
+        // --- Sound Synthesis with Tone.js ---
+        const sounds = {
+            'select': new Tone.Synth({ oscillator: { type: 'square' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+            'button1': new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0, release: 0.1 } }).toDestination(),
+            'button2': new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0, release: 0.1 } }).toDestination(),
+            'button3': new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.005, decay: 0.05, sustain: 0, release: 0.1 } }).toDestination(),
+            'coin': new Tone.MetalSynth({ frequency: 200, envelope: { attack: 0.001, decay: 0.1, release: 0.01 }, harmonicity: 5.1, modulationIndex: 32, resonance: 4000, octaves: 1.5 }).toDestination(),
+            'explosion': new Tone.NoiseSynth({ noise: { type: 'white' }, envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+            'easter': new Tone.Synth({ oscillator: { type: 'pulse', width: 0.6 }, envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.1 } }).toDestination()
+        };
+
+        function playSound(soundName, note = 'C4', duration = '8n') {
+            // Ensure audio context is started by user interaction
+            Tone.start();
+            if (sounds[soundName]) {
+                if (sounds[soundName] instanceof Tone.NoiseSynth) {
+                     sounds[soundName].triggerAttackRelease(duration);
+                } else if (sounds[soundName] instanceof Tone.MetalSynth) {
+                     sounds[soundName].triggerAttackRelease(duration);
+                } else {
+                    sounds[soundName].triggerAttackRelease(note, duration);
+                }
+            }
+        }
+
+        // --- Particle Background ---
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let mouse = { x: null, y: null };
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Optional: Particles react to mouse movement
+        // window.addEventListener('mousemove', (event) => {
+        //     mouse.x = event.clientX;
+        //     mouse.y = event.clientY;
+        // });
+        // window.addEventListener('mouseout', () => {
+        //     mouse.x = null;
+        //     mouse.y = null;
+        // });
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 1;
+                this.speedX = Math.random() * 1 - 0.5;
+                this.speedY = Math.random() * 1 - 0.5;
+                this.color = `rgba(${Math.random()*100 + 155}, ${Math.random()*100 + 155}, 255, ${Math.random()*0.5 + 0.3})`; // Blues/Purples/Pinks
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+
+                // Boundary check (wrap around)
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+
+                // Optional: Interaction with mouse (repel)
+                // if (mouse.x !== null && mouse.y !== null) {
+                //     let dx = this.x - mouse.x;
+                //     let dy = this.y - mouse.y;
+                //     let distance = Math.sqrt(dx*dx + dy*dy);
+                //     if (distance < 50) { // Repel radius
+                //         this.x += dx / distance * 2;
+                //         this.y += dy / distance * 2;
+                //     }
+                // }
+
+                 // Reset if particles go too far off screen (alternative to wrapping)
+                if (this.x < -this.size || this.x > canvas.width + this.size || this.y < -this.size || this.y > canvas.height + this.size) {
+                    Object.assign(this, new Particle()); // Reinitialize
+                }
+            }
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.rect(this.x, this.y, this.size, this.size); // Pixelated look
+                ctx.fill();
+            }
+        }
+
+        function initParticles(count = 100) {
+            particles = [];
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        initParticles();
+        animateParticles();
+
+
+        // --- Neon Lights ---
+        const neonContainer = document.getElementById('neon-lights-container');
+        const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#00ff00'];
+        function createNeonLight() {
+            const light = document.createElement('div');
+            light.classList.add('neon-light');
+            const size = Math.random() * 15 + 5; // 5px to 20px
+            light.style.width = `${size}px`;
+            light.style.height = `${size}px`;
+            light.style.left = `${Math.random() * 100}%`;
+            light.style.top = `${Math.random() * 100}%`;
+            const color = neonColors[Math.floor(Math.random() * neonColors.length)];
+            light.style.backgroundColor = color;
+            light.style.boxShadow = `0 0 ${size*0.5}px ${color}, 0 0 ${size}px ${color}, 0 0 ${size*1.5}px ${color}`;
+            light.style.animationDuration = `${Math.random() * 1 + 1}s`; // 1-2 second blink
+            light.style.animationDelay = `${Math.random() * 1}s`;
+            neonContainer.appendChild(light);
+        }
+        for (let i = 0; i < 15; i++) { // Create 15 neon lights
+            createNeonLight();
+        }
+
+        // --- Falling Coins ---
+        const coinContainer = document.getElementById('coin-container');
+        function createCoin() {
+            const coin = document.createElement('div');
+            coin.classList.add('coin');
+            coin.style.left = `${Math.random() * 90 + 5}%`; // Start between 5% and 95%
+            coin.style.animationDuration = `${Math.random() * 2 + 3}s, ${Math.random() * 4 + 3}s`; // Random fall and sway duration
+            coin.style.animationDelay = `${Math.random() * 5}s`; // Stagger start times
+            coinContainer.appendChild(coin);
+
+            // Remove coin after animation ends to prevent buildup
+            coin.addEventListener('animationend', () => {
+                 if (coin.parentNode === coinContainer) { // Check if still attached
+                    coinContainer.removeChild(coin);
+                 }
+            });
+        }
+        // Create coins periodically
+        setInterval(createCoin, 2000); // New coin every 2 seconds
+        createCoin(); // Create one immediately
+
+
+        // --- Click Explosion Effect ---
+        function createPixelExplosion(x, y) {
+            playSound('explosion', null, 0.1); // Play explosion sound
+            const pixelCount = 15;
+            for (let i = 0; i < pixelCount; i++) {
+                const pixel = document.createElement('div');
+                pixel.classList.add('pixel-explosion');
+                pixel.style.left = `${x}px`;
+                pixel.style.top = `${y}px`;
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 50 + 20; // 20px to 70px outward
+                const translateX = Math.cos(angle) * distance;
+                const translateY = Math.sin(angle) * distance;
+                const rotation = Math.random() * 360; // Random rotation
+                const color = `hsl(${Math.random() * 360}, 100%, ${Math.random() * 50 + 50}%)`; // Random bright color
+
+                pixel.style.backgroundColor = color;
+
+                // Trigger animation via style change
+                requestAnimationFrame(() => { // Ensure element is in DOM before animating
+                     pixel.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg) scale(0.5)`;
+                     pixel.style.opacity = '0';
+                });
+
+
+                document.body.appendChild(pixel);
+
+                // Remove pixel after animation
+                setTimeout(() => {
+                    if (pixel.parentNode === document.body) { // Check if still attached
+                        document.body.removeChild(pixel);
+                    }
+                }, 500); // Match transition duration
+            }
+        }
+
+        document.addEventListener('click', (event) => {
+            // Avoid triggering explosion on buttons/thumbnails themselves maybe?
+            // Or just let it happen everywhere for fun.
+            createPixelExplosion(event.clientX, event.clientY);
+        });
+
+
+        // --- Sound on Interaction ---
+        document.querySelectorAll('[data-sound]').forEach(element => {
+            element.addEventListener('click', (e) => {
+                // Don't trigger explosion directly on the sound element itself
+                e.stopPropagation();
+                playSound(element.dataset.sound, 'C5'); // Play sound associated with element
+
+                // Add a little visual feedback beyond the explosion
+                element.style.transform = 'scale(0.95)';
+                setTimeout(() => element.style.transform = '', 100);
+
+                // If it's a game thumbnail, log selection (replace with actual navigation later)
+                if (element.classList.contains('game-thumbnail')) {
+                    console.log(`Selected game: ${element.dataset.game}`);
+                    // Placeholder: Maybe show a quick message
+                    const msg = document.createElement('div');
+                    msg.textContent = `${element.dataset.game} selected!`;
+                    msg.style.position = 'fixed';
+                    msg.style.top = '50%';
+                    msg.style.left = '50%';
+                    msg.style.transform = 'translate(-50%, -50%)';
+                    msg.style.background = 'rgba(0,0,0,0.8)';
+                    msg.style.color = '#0f0'; /* Green */
+                    msg.style.padding = '20px';
+                    msg.style.border = '2px solid #0f0';
+                    msg.style.zIndex = '1000';
+                    msg.style.fontSize = '1.5rem';
+                     msg.style.textShadow = '0 0 5px #0f0';
+                    document.body.appendChild(msg);
+                    setTimeout(() => document.body.removeChild(msg), 1500);
+                }
+            });
+             element.addEventListener('mouseover', () => {
+                 // Optional: subtle sound on hover
+                 // playSound('hover', 'C3', 0.05);
+             });
+        });
+
+        // --- Attract Mode ---
+        const attractOverlay = document.getElementById('attract-overlay');
+        let attractTimeout;
+        let idleTime = 0;
+        const idleThreshold = 20000; // 20 seconds of inactivity
+        const attractDuration = 10000; // Show attract mode for 10 seconds
+
+        function showAttractMode() {
+            attractOverlay.classList.add('active');
+            // Maybe play a specific attract sound/music loop here
+            attractTimeout = setTimeout(hideAttractMode, attractDuration);
+        }
+
+        function hideAttractMode() {
+            attractOverlay.classList.remove('active');
+            resetIdleTimer(); // Reset timer when attract mode ends
+        }
+
+        function resetIdleTimer() {
+            idleTime = 0;
+            clearTimeout(attractTimeout);
+            if (attractOverlay.classList.contains('active')) {
+                hideAttractMode(); // Hide if currently shown
+            }
+        }
+
+        // Increment idle time every second
+        setInterval(() => {
+            idleTime += 1000;
+            if (idleTime >= idleThreshold && !attractOverlay.classList.contains('active')) {
+                showAttractMode();
+            }
+        }, 1000);
+
+        // Reset idle timer on user activity
+        window.addEventListener('mousemove', resetIdleTimer);
+        window.addEventListener('keypress', resetIdleTimer);
+        window.addEventListener('click', resetIdleTimer);
+        window.addEventListener('scroll', resetIdleTimer); // If scrolling is possible
+
+        // --- Easter Egg ---
+        const easterEgg = document.getElementById('easter-egg');
+        let easterEggClicks = 0;
+        easterEgg.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent body click explosion
+            easterEggClicks++;
+            playSound('easter', `C${3 + easterEggClicks}`, 0.1); // Pitch increases
+            easterEgg.style.opacity = Math.min(1, 0.2 + easterEggClicks * 0.2); // Become more visible
+            if (easterEggClicks >= 5) {
+                alert('EASTER EGG FOUND! 👾 You get +1 life!'); // Replace alert later
+                easterEggClicks = 0; // Reset
+                easterEgg.style.opacity = '0.2';
+            }
+        });
+
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pac-Man</title>
+    <link rel="stylesheet" href="../css/pacman.css">
+</head>
+<body>
+    <div class="game-container">
+        <a href="../index.html" class="back-button">← Back to Menu</a>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div class="score-container">
+            <div class="score">Score: <span id="score">0</span></div>
+            <div class="lives">Lives: <span id="lives">3</span></div>
+        </div>
+        <div class="controls">
+            <h3>Controls</h3>
+            <p>← → ↑ ↓ : Move</p>
+            <p>P : Pause</p>
+            <button id="startButton">Start Game</button>
+            <button id="pauseButton">Pause</button>
+        </div>
+    </div>
+    <script src="../js/gameEngine.js"></script>
+    <script src="../js/inputHandler.js"></script>
+    <script src="pacman.js"></script>
+</body>
+</html> 

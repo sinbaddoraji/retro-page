@@ -310,35 +310,20 @@
         <h2 class="text-2xl text-center mb-8 text-yellow-300" style="text-shadow: 0 0 5px #ffdd00;">Select Your Game!</h2>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            <div class="game-thumbnail" data-sound="select" data-game="Pac-Man">
-                <div class="icon-placeholder">🟡</div> <p class="text-center p-2 text-sm">Pac-Man</p>
-            </div>
             <div class="game-thumbnail" data-sound="select" data-game="Space Invaders">
-                 <div class="icon-placeholder">👾</div> <p class="text-center p-2 text-sm">Space Invaders</p>
+                <div class="icon-placeholder">👾</div> <p class="text-center p-2 text-sm">Space Invaders</p>
             </div>
             <div class="game-thumbnail" data-sound="select" data-game="Tetris">
-                 <div class="icon-placeholder">🧱</div> <p class="text-center p-2 text-sm">Tetris</p>
+                <div class="icon-placeholder">🧱</div> <p class="text-center p-2 text-sm">Tetris</p>
             </div>
             <div class="game-thumbnail" data-sound="select" data-game="Snake">
-                 <div class="icon-placeholder">🐍</div> <p class="text-center p-2 text-sm">Snake</p>
+                <div class="icon-placeholder">🐍</div> <p class="text-center p-2 text-sm">Snake</p>
             </div>
             <div class="game-thumbnail" data-sound="select" data-game="Pong">
-                 <div class="icon-placeholder">🏓</div> <p class="text-center p-2 text-sm">Pong</p>
+                <div class="icon-placeholder">🏓</div> <p class="text-center p-2 text-sm">Pong</p>
             </div>
             <div class="game-thumbnail" data-sound="select" data-game="Breakout">
-                 <div class="icon-placeholder">💥</div> <p class="text-center p-2 text-sm">Breakout</p>
-            </div>
-            <div class="game-thumbnail" data-sound="select" data-game="Asteroids">
-                 <div class="icon-placeholder">☄️</div> <p class="text-center p-2 text-sm">Asteroids</p>
-            </div>
-            <div class="game-thumbnail" data-sound="select" data-game="Frogger">
-                 <div class="icon-placeholder">🐸</div> <p class="text-center p-2 text-sm">Frogger</p>
-            </div>
-            <div class="game-thumbnail" data-sound="select" data-game="Galaga">
-                 <div class="icon-placeholder">🚀</div> <p class="text-center p-2 text-sm">Galaga</p>
-            </div>
-            <div class="game-thumbnail" data-sound="select" data-game="Donkey Kong">
-                 <div class="icon-placeholder">🦍</div> <p class="text-center p-2 text-sm">Donkey Kong</p>
+                <div class="icon-placeholder">💥</div> <p class="text-center p-2 text-sm">Breakout</p>
             </div>
         </div>
     </main>
@@ -367,7 +352,9 @@
 
         function playSound(soundName, note = 'C4', duration = '8n') {
             // Ensure audio context is started by user interaction
-            Tone.start();
+            if (Tone.context.state !== 'running') {
+                Tone.context.resume();
+            }
             if (sounds[soundName]) {
                 if (sounds[soundName] instanceof Tone.NoiseSynth) {
                      sounds[soundName].triggerAttackRelease(duration);
@@ -555,45 +542,39 @@
             element.addEventListener('click', (e) => {
                 // Don't trigger explosion directly on the sound element itself
                 e.stopPropagation();
-                playSound(element.dataset.sound, 'C5'); // Play sound associated with element
-
-                // Add a little visual feedback beyond the explosion
-                element.style.transform = 'scale(0.95)';
-                setTimeout(() => element.style.transform = '', 100);
-
-                // If it's a game thumbnail, log selection (replace with actual navigation later)
+                
+                // For game thumbnails, don't delay navigation with sound
                 if (element.classList.contains('game-thumbnail')) {
-                    console.log(`Selected game: ${element.dataset.game}`);
-                    // Placeholder: Maybe show a quick message
-                    const msg = document.createElement('div');
-                    msg.textContent = `${element.dataset.game} selected!`;
-                    msg.style.position = 'fixed';
-                    msg.style.top = '50%';
-                    msg.style.left = '50%';
-                    msg.style.transform = 'translate(-50%, -50%)';
-                    msg.style.background = 'rgba(0,0,0,0.8)';
-                    msg.style.color = '#0f0'; /* Green */
-                    msg.style.padding = '20px';
-                    msg.style.border = '2px solid #0f0';
-                    msg.style.zIndex = '1000';
-                    msg.style.fontSize = '1.5rem';
-                     msg.style.textShadow = '0 0 5px #0f0';
-                    document.body.appendChild(msg);
-                    setTimeout(() => document.body.removeChild(msg), 1500);
+                    const gameName = element.dataset.game;
+                    const gameURLs = {
+                        'Space Invaders': 'games/spaceinvaders.html',
+                        'Tetris': 'games/tetris.html',
+                        'Snake': 'games/snake.html',
+                        'Pong': 'games/pong.html',
+                        'Breakout': 'games/breakout.html'
+                    };
+                    
+                    const gameUrl = gameURLs[gameName];
+                    if (gameUrl) {
+                        window.location.href = gameUrl;
+                    }
+                } else {
+                    // For other elements, play sound
+                    playSound(element.dataset.sound, 'C5');
+                    
+                    // Add visual feedback
+                    element.style.transform = 'scale(0.95)';
+                    setTimeout(() => element.style.transform = '', 100);
                 }
             });
-             element.addEventListener('mouseover', () => {
-                 // Optional: subtle sound on hover
-                 // playSound('hover', 'C3', 0.05);
-             });
         });
 
         // --- Attract Mode ---
         const attractOverlay = document.getElementById('attract-overlay');
         let attractTimeout;
         let idleTime = 0;
-        const idleThreshold = 20000; // 20 seconds of inactivity
-        const attractDuration = 10000; // Show attract mode for 10 seconds
+        const idleThreshold = 30000; // Increase to 30 seconds to be less intrusive
+        const attractDuration = 5000; // Reduce to 5 seconds
 
         function showAttractMode() {
             attractOverlay.classList.add('active');
@@ -641,6 +622,32 @@
                 easterEggClicks = 0; // Reset
                 easterEgg.style.opacity = '0.2';
             }
+        });
+
+        // --- Game Selection ---
+        // Clear existing listeners to avoid duplications
+        document.querySelectorAll('.game-thumbnail').forEach(element => {
+            const clone = element.cloneNode(true);
+            element.parentNode.replaceChild(clone, element);
+        });
+
+        // Add new direct navigation listeners
+        document.querySelectorAll('.game-thumbnail').forEach(element => {
+            element.addEventListener('click', (e) => {
+                const gameName = element.dataset.game;
+                const gameURLs = {
+                    'Space Invaders': 'games/spaceinvaders.html',
+                    'Tetris': 'games/tetris.html',
+                    'Snake': 'games/snake.html',
+                    'Pong': 'games/pong.html',
+                    'Breakout': 'games/breakout.html'
+                };
+                
+                const gameUrl = gameURLs[gameName];
+                if (gameUrl) {
+                    window.location.href = gameUrl;
+                }
+            });
         });
 
     </script>
